@@ -21,14 +21,10 @@ export const Car = forwardRef<THREE.Group, CarProps>(({ trackRef }, ref) => {
 	const fallTimer = useRef(0);
 
 	const status = useGameStore((s) => s.status);
-	const setStatus = useGameStore((s) => s.setStatus);
-	const nextLevel = useGameStore((s) => s.nextLevel);
 	const setSpeedUI = useGameStore((s) => s.setSpeed);
 	const currentLevelIndex = useGameStore((s) => s.currentLevelIndex);
 	const levels = useGameStore((s) => s.levels);
-	const checkpointsFound = useGameStore((s) => s.checkpointsFound);
 	const setCheckpointsFound = useGameStore((s) => s.setCheckpointsFound);
-	const setHasStarted = useGameStore((s) => s.setHasStarted);
 
 	// Expose carRef if parent provided one
 	useEffect(() => {
@@ -100,11 +96,12 @@ export const Car = forwardRef<THREE.Group, CarProps>(({ trackRef }, ref) => {
 	}, [status, currentLevelIndex, camera, levels]);
 
 	useFrame((state, delta) => {
+		const store = useGameStore.getState();
 		// Prevent huge delta spikes on tab switch
 		let dt = Math.min(delta, 0.1);
-		const isPlaying = status === "playing" || status === "finish";
+		const isPlaying = store.status === "playing" || store.status === "finish";
 
-		if (status === "finish") {
+		if (store.status === "finish") {
 			dt *= 0.3; // Slow motion on finish
 		}
 
@@ -152,6 +149,13 @@ export const Car = forwardRef<THREE.Group, CarProps>(({ trackRef }, ref) => {
 				setSpeedUI(Math.abs(speedRef.current));
 				soundManager.setEngineSpeed(Math.abs(speedRef.current) / maxSpeed);
 
+				useGameStore.setState({
+					carPosition: {
+						x: carRef.current.position.x,
+						z: carRef.current.position.z,
+					},
+				});
+
 				// Raycast logic to stick to path and bounds
 				if (trackRef.current) {
 					// Cast from slightly above current Y down to find the very track we are on
@@ -177,23 +181,18 @@ export const Car = forwardRef<THREE.Group, CarProps>(({ trackRef }, ref) => {
 						if (Math.abs(speedRef.current) > 10) {
 							soundManager.playCrashSound();
 						}
-						speedRef.current = -speedRef.current * 0.5;
-						carRef.current.position.x -= Math.sin(angleRef.current) * 20 * dt;
-						carRef.current.position.z -= Math.cos(angleRef.current) * 20 * dt;
+						speedRef.current = 0;
 					}
 				}
 
-				// Logic check: Start, CP1, CP2, CP3, Finish
+				// Checkpoint logic
 				const currentPath = NUMBER_PATHS[levels[currentLevelIndex]];
 				const carPos = carRef.current.position;
-				const dist = 4; // Check trigger radius
+
+				const dist = 25; // Check trigger radius for checkpoints
+				const finishDist = 25;
 
 				const c0 = currentPath.getPointAt(0);
-				const c1 = currentPath.getPointAt(0.25);
-				const c2 = currentPath.getPointAt(0.5);
-				const c3 = currentPath.getPointAt(0.75);
-				const c4 = currentPath.getPointAt(1);
-
 				const store = useGameStore.getState();
 
 				if (!store.hasStarted && carPos.distanceTo(c0) < dist) {
@@ -204,33 +203,42 @@ export const Car = forwardRef<THREE.Group, CarProps>(({ trackRef }, ref) => {
 				}
 
 				if (store.hasStarted) {
-					if (store.checkpointsFound === 0 && carPos.distanceTo(c1) < dist) {
-						setCheckpointsFound(1);
-					} else if (
-						store.checkpointsFound === 1 &&
-						carPos.distanceTo(c2) < dist
-					) {
-						setCheckpointsFound(2);
-					} else if (
-						store.checkpointsFound === 2 &&
-						carPos.distanceTo(c3) < dist
-					) {
-						setCheckpointsFound(3);
+					const requiredCheckpoints = 8;
+
+					// If we still have checkpoints to find (0 through 7)
+					if (store.checkpointsFound < requiredCheckpoints) {
+						// The next checkpoint target is proportional to how many we've found
+						// Checkpoints are at t = 0.1, 0.2, ... 0.8
+						const nextT = (store.checkpointsFound + 1) / 10;
+						const cp = currentPath.getPointAt(nextT);
+
+						// Use 2D distance for leniency on bridges/ramps
+						const dist2D = Math.hypot(carPos.x - cp.x, carPos.z - cp.z);
+						if (dist2D < dist) {
+							setCheckpointsFound(store.checkpointsFound + 1);
+						}
 					}
 
 					if (
-						store.checkpointsFound >= 3 &&
-						carPos.distanceTo(c4) < 5 &&
-						status !== "finish"
+						store.checkpointsFound >= requiredCheckpoints &&
+						store.status !== "finish"
 					) {
-						setStatus("finish");
-						soundManager.playWinSound();
-						soundManager.muteEngine();
-						useGameStore.getState().setMessage("TRACK COMPLETE!");
-						setTimeout(() => useGameStore.getState().setMessage(""), 1500);
-						setTimeout(() => {
-							nextLevel();
-						}, 1500);
+						const finishNode = currentPath.getPointAt(0.99);
+						const dist2D = Math.hypot(
+							carPos.x - finishNode.x,
+							carPos.z - finishNode.z,
+						);
+
+						if (dist2D < finishDist) {
+							useGameStore.getState().setStatus("finish");
+							soundManager.playWinSound();
+							soundManager.muteEngine();
+							useGameStore.getState().setMessage("TRACK COMPLETE!");
+							setTimeout(() => useGameStore.getState().setMessage(""), 1500);
+							setTimeout(() => {
+								useGameStore.getState().nextLevel();
+							}, 1500);
+						}
 					}
 				}
 			}

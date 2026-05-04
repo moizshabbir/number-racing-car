@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useGameStore } from "../store/gameStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { soundManager } from "../utils/audio";
+import { MiniMap } from "./MiniMap";
 
 const formatTime = (seconds: number) => {
 	const h = Math.floor(seconds / 3600);
@@ -56,36 +57,26 @@ export function UI() {
 		<div className="absolute inset-0 pointer-events-none flex flex-col text-[#E0E0E0] font-sans overflow-hidden select-none">
 			<div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent"></div>
 
-			{/* Dev / Debug Tools (Always visible for testing) */}
-			<div className="absolute top-4 right-4 z-50 pointer-events-auto bg-black/60 p-2 rounded border border-cyan-500/30 flex items-center gap-2 backdrop-blur">
-				<label className="text-xs text-cyan-400 font-bold uppercase">
-					Jump to Level:
-				</label>
-				<select
-					className="bg-black text-white text-xs border border-cyan-500/50 rounded px-2 py-1 outline-none"
-					value={currentLevelIndex}
-					onChange={(e) =>
-						useGameStore.getState().jumpToLevel(Number(e.target.value))
-					}
-				>
-					{levels.map((num, i) => (
-						<option key={num} value={i}>
-							Level {i + 1} (Shape {num})
-						</option>
-					))}
-				</select>
-			</div>
+			<MiniMap />
 
 			{/* Top HUD */}
 			<div className="relative z-20 flex justify-between items-start p-6">
 				{/* Top Left: Laps / Time */}
-				<div className="flex flex-col gap-2 drop-shadow-[0_0_10px_rgba(0,255,255,0.2)] bg-black/40 px-6 py-2 rounded-r-3xl border-l-4 border-cyan-400 italic">
+				<div className="flex flex-col gap-2 drop-shadow-[0_0_10px_rgba(0,255,255,0.2)] bg-black/40 px-6 py-4 rounded-r-3xl border-l-4 border-cyan-400 italic pointer-events-auto">
 					<h2 className="text-3xl font-black text-cyan-400 font-mono tracking-wider">
 						{currentLevelIndex + 1}/{levels.length}
 					</h2>
 					<span className="text-xl font-mono text-white font-bold tracking-widest drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">
 						{formatTime(time)}
 					</span>
+					<button
+						className="mt-2 text-xs font-bold text-white/50 hover:text-cyan-400 border border-white/20 hover:border-cyan-400/50 bg-black/40 rounded px-2 py-1 transition-colors pointer-events-auto"
+						onClick={() => {
+							useGameStore.getState().restartLevel();
+						}}
+					>
+						RESET TRACK
+					</button>
 				</div>
 
 				{/* Top Center: Analog Dashboard */}
@@ -133,18 +124,7 @@ export function UI() {
 			</div>
 
 			{/* Center Messages */}
-			<div className="absolute inset-0 flex items-center justify-center flex-col z-30">
-				{isIntro && (
-					<div className="text-center drop-shadow-[0_0_20px_rgba(0,242,255,0.8)]">
-						<h1
-							className="text-8xl font-black text-transparent italic tracking-wider animate-pulse"
-							style={{ WebkitTextStroke: "4px #00f2ff" }}
-						>
-							SESSION {currentLevelIndex + 1}
-						</h1>
-					</div>
-				)}
-
+			<div className="absolute inset-0 flex items-center justify-center flex-col z-30 pointer-events-none">
 				{isCountdown && countdownText && (
 					<AnimatePresence mode="wait">
 						<motion.div
@@ -219,9 +199,61 @@ export function UI() {
 					<div className="w-0 h-0 border-t-[15px] border-t-transparent border-l-[25px] border-l-cyan-400 border-b-[15px] border-b-transparent drop-shadow-[0_0_10px_rgba(0,255,255,0.5)]"></div>
 				</div>
 
-				{/* Bottom Center: Player text */}
-				<div className="absolute left-1/2 -translate-x-1/2 bottom-8 text-xl font-bold italic tracking-[0.4em] text-white/50 lowercase">
-					player 1
+				{/* Bottom Center: Keyboard Controls */}
+				<div className="absolute left-1/2 -translate-x-1/2 bottom-4 flex gap-6 justify-center items-end opacity-70 hover:opacity-100 transition-opacity z-10 pointer-events-none drop-shadow-none scale-90">
+					<div className="flex flex-col items-center gap-1">
+						<div className="flex items-center gap-1 text-sm font-mono text-cyan-400">
+							<kbd className="border border-cyan-400/50 bg-black/40 rounded px-2 py-0.5">
+								W
+							</kbd>
+							<span className="text-cyan-400/50">/</span>
+							<kbd className="border border-cyan-400/50 bg-black/40 rounded px-2 py-0.5">
+								↑
+							</kbd>
+						</div>
+						<span className="text-[10px] font-bold text-white/70 tracking-widest text-center">
+							DRIVE
+						</span>
+					</div>
+
+					<div className="flex flex-col items-center gap-1">
+						<div className="flex items-center gap-1 text-sm font-mono text-cyan-400">
+							<kbd className="border border-cyan-400/50 bg-cyan-400/10 rounded px-2 py-0.5">
+								A
+							</kbd>
+							<kbd className="border border-cyan-400/50 bg-cyan-400/10 rounded px-2 py-0.5">
+								S
+							</kbd>
+							<kbd className="border border-cyan-400/50 bg-cyan-400/10 rounded px-2 py-0.5">
+								D
+							</kbd>
+						</div>
+						<span className="text-[10px] font-bold text-white/70 tracking-widest">
+							STEER/BRAKE
+						</span>
+					</div>
+
+					<div className="flex flex-col items-center gap-1">
+						<div className="flex items-center gap-1 text-sm font-mono text-pink-500">
+							<kbd className="border border-pink-500/50 bg-black/40 rounded px-2 py-0.5">
+								SHIFT
+							</kbd>
+						</div>
+						<span className="text-[10px] font-bold text-white/70 tracking-widest">
+							DRIFT
+						</span>
+					</div>
+
+					<div className="flex flex-col items-center gap-1">
+						<div className="flex items-center gap-1 text-sm font-mono text-yellow-400">
+							<kbd className="border border-yellow-400/50 bg-black/40 rounded px-2 py-0.5">
+								SPACE
+							</kbd>
+						</div>
+						<span className="text-[10px] font-bold text-white/70 tracking-widest">
+							BOOST
+						</span>
+					</div>
 				</div>
 
 				{/* Bottom Right: Pedals */}

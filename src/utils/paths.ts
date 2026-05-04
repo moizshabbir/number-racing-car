@@ -24,7 +24,7 @@ const paths3D: Record<number, number[][]> = {
 		[4.5, 0, -5.0], // bottom right curve
 		[3.0, 0, -5.5], // finish at bottom middle
 		[2.0, 0, -4.5], // close the 0 gap
-		[1.5, 0, -3.0], // loop completed
+		[1.6, 0, -3.2], // loop completed with gap
 	],
 
 	// 9: Start bottom tail, up, clockwise loop, end under overpass
@@ -60,16 +60,20 @@ const paths3D: Record<number, number[][]> = {
 		[0.0, 0, -3.5], // bottom left (diagonal)
 	],
 
-	// 6: Loop at bottom, overpass
+	// 6: Start top right, curve down, loop right and climb over stem
 	6: [
-		[1.5, 1.5, 4.0], // top right
-		[-1.5, 1.0, 2.0], // diagonal left
-		[-2.0, 0.5, -1.0], // down
-		[0.0, 0.0, -3.5],
-		[2.0, 0.5, -2.0], // bottom curve
-		[1.5, 1.0, 0.5], // curve up and left
-		[-1.0, 1.5, 0.5], // cross over the downward stroke
-		[-1.5, 1.0, -1.0], // terminate inside
+		[2.0, 0.0, 4.0], // top right
+		[0.0, 0.0, 3.5],
+		[-1.5, 0.0, 1.5],
+		[-2.0, 0.0, -1.5], // stem
+		[-1.0, 0.0, -3.5],
+		[1.0, 0.0, -3.5],
+		[2.0, 0.0, -1.5],
+		[1.5, 0.0, 0.5],
+		[0.0, 0.0, 1.0], // heading towards stem
+		[-1.0, 0.5, 0.5], // climb
+		[-2.5, 1.0, -0.5], // cross over stem
+		[-3.5, 1.0, -1.5], // finish overpass
 	],
 
 	// 5: Continuous, no crossing
